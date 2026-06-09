@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculator</title>
+    <style>
+        body { font-family: Arial; max-width: 500px; margin: auto; padding: 20px; }
+        input, button { margin: 5px; }
+        #result { margin-top: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Calculator</h1>
+    <label>a: <input type="number" id="a" step="any"></label>
+    <label>b: <input type="number" id="b" step="any"></label>
+    <br>
+    <button onclick="calc('add')">Add</button>
+    <button onclick="calc('subtract')">Subtract</button>
+    <button onclick="calc('multiply')">Multiply</button>
+    <button onclick="calc('divide')">Divide</button>
+    <button onclick="calc('power')">Power</button>
+    <div id="result"></div>
+    <script>
+        async function calc(operation) {
+            const a = document.getElementById('a').value;
+            const b = document.getElementById('b').value;
+            if (a === '' || b === '') {
+                document.getElementById('result').innerText = 'Please enter both numbers.';
+                return;
+            }
+            try {
+                // Use relative path to API
+                const res = await fetch(`/${operation}?a=${a}&b=${b}`);
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Unknown error');
+                }
+                const data = await res.json();
+                document.getElementById('result').innerText = `Result: ${data.result}`;
+            } catch (err) {
+                document.getElementById('result').innerText = `Error: ${err.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

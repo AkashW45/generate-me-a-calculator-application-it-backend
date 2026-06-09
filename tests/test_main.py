@@ -49,3 +49,10 @@ def test_power():
 def test_missing_params():
     response = client.get("/add")
     assert response.status_code == 422  # validation error
+
+
+def test_index_page():
+    """Test that the main page loads with Bootstrap (UI upgrade)."""
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "bootstrap" in response.text.lower()

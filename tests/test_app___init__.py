@@ -26,3 +26,11 @@ def test_app_import_error_on_nonexistent_submodule():
     """Error path: importing a non-existent submodule raises ImportError."""
     with pytest.raises(ImportError):
         import app.nonexistent_module
+
+
+def test_app_has_ui_submodule():
+    """Happy path: after UI upgrade, app.ui submodule exists and is importable."""
+    try:
+        import app.ui
+    except ImportError as e:
+        pytest.fail(f"Expected UI submodule after upgrade, but import failed: {e}")

@@ -52,7 +52,19 @@ def test_missing_params():
 
 
 def test_index_page():
-    """Test that the main page loads with Bootstrap (UI upgrade)."""
+    """Test that the main page loads the keypad UI with digit/operator buttons and input/output displays."""
     response = client.get("/")
     assert response.status_code == 200
+    # Check that Bootstrap is still present (UI upgrade)
     assert "bootstrap" in response.text.lower()
+    # Check for two display areas (input expression and output result)
+    assert "input-expression" in response.text.lower() or "input expression" in response.text.lower()
+    assert "output-result" in response.text.lower() or "output result" in response.text.lower()
+    # Check for digit buttons 0-9
+    for digit in "0123456789":
+        assert f'"{digit}"' in response.text or f"'{digit}'" in response.text or f'>{digit}<' in response.text
+    # Check for operator buttons (+, -, *, /)
+    for op in ["+", "-", "*", "/", "=", "C"]:
+        assert op in response.text
+    # Optionally verify the grid structure: ensure the page contains a 'grid' or 'calculator' class
+    assert 'class="grid"' in response.text or 'class="calculator"' in response.text or 'class="keypad"' in response.text

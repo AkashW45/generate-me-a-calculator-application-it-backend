@@ -8,8 +8,29 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background-color: #f8f9fa; }
-        .calculator-card { max-width: 500px; margin: 2rem auto; }
-        #result { min-height: 2.5rem; }
+        .calculator-card { max-width: 400px; margin: 2rem auto; }
+        .display-area {
+            background: #fff;
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            padding: 0.75rem;
+            min-height: 4.5rem;
+            font-family: 'Courier New', monospace;
+            text-align: right;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        .display-expression {
+            font-size: 1.2rem;
+            color: #6c757d;
+            min-height: 1.5rem;
+        }
+        .display-result {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #212529;
+        }
+        .btn-calc { font-size: 1.2rem; padding: 0.5rem 0; }
     </style>
 </head>
 <body>
@@ -17,50 +38,216 @@
         <div class="card calculator-card shadow">
             <div class="card-body">
                 <h1 class="card-title text-center mb-4">Calculator</h1>
-                <div class="row mb-3">
-                    <div class="col">
-                        <label for="a" class="form-label">a</label>
-                        <input type="number" class="form-control" id="a" step="any" placeholder="Enter number">
-                    </div>
-                    <div class="col">
-                        <label for="b" class="form-label">b</label>
-                        <input type="number" class="form-control" id="b" step="any" placeholder="Enter number">
-                    </div>
+
+                <!-- Unified display: input expression & output result -->
+                <div class="display-area mb-3">
+                    <div id="displayExpression" class="display-expression">&nbsp;</div>
+                    <div id="displayResult" class="display-result">0</div>
                 </div>
-                <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
-                    <button onclick="calc('add')" class="btn btn-primary">Add</button>
-                    <button onclick="calc('subtract')" class="btn btn-secondary">Subtract</button>
-                    <button onclick="calc('multiply')" class="btn btn-success">Multiply</button>
-                    <button onclick="calc('divide')" class="btn btn-warning">Divide</button>
-                    <button onclick="calc('power')" class="btn btn-info">Power</button>
+
+                <!-- 4-column keypad grid -->
+                <div class="row g-2 mb-3">
+                    <div class="col-3"><button class="btn btn-outline-secondary w-100 btn-calc" onclick="pressClear()">C</button></div>
+                    <div class="col-3"><button class="btn btn-outline-secondary w-100 btn-calc" onclick="pressSign()">±</button></div>
+                    <div class="col-3"><button class="btn btn-outline-secondary w-100 btn-calc" onclick="pressPercent()">%</button></div>
+                    <div class="col-3"><button class="btn btn-outline-warning w-100 btn-calc" onclick="pressOperator('/')">÷</button></div>
                 </div>
-                <div id="result" class="alert alert-info text-center fw-bold" role="alert">
-                    Ready
+                <div class="row g-2 mb-3">
+                    <div class="col-3"><button class="btn btn-outline-dark w-100 btn-calc" onclick="pressDigit('7')">7</button></div>
+                    <div class="col-3"><button class="btn btn-outline-dark w-100 btn-calc" onclick="pressDigit('8')">8</button></div>
+                    <div class="col-3"><button class="btn btn-outline-dark w-100 btn-calc" onclick="pressDigit('9')">9</button></div>
+                    <div class="col-3"><button class="btn btn-outline-warning w-100 btn-calc" onclick="pressOperator('*')">×</button></div>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-3"><button class="btn btn-outline-dark w-100 btn-calc" onclick="pressDigit('4')">4</button></div>
+                    <div class="col-3"><button class="btn btn-outline-dark w-100 btn-calc" onclick="pressDigit('5')">5</button></div>
+                    <div class="col-3"><button class="btn btn-outline-dark w-100 btn-calc" onclick="pressDigit('6')">6</button></div>
+                    <div class="col-3"><button class="btn btn-outline-warning w-100 btn-calc" onclick="pressOperator('-')">−</button></div>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-3"><button class="btn btn-outline-dark w-100 btn-calc" onclick="pressDigit('1')">1</button></div>
+                    <div class="col-3"><button class="btn btn-outline-dark w-100 btn-calc" onclick="pressDigit('2')">2</button></div>
+                    <div class="col-3"><button class="btn btn-outline-dark w-100 btn-calc" onclick="pressDigit('3')">3</button></div>
+                    <div class="col-3"><button class="btn btn-outline-warning w-100 btn-calc" onclick="pressOperator('+')">+</button></div>
+                </div>
+                <div class="row g-2">
+                    <div class="col-6"><button class="btn btn-outline-dark w-100 btn-calc" onclick="pressDigit('0')">0</button></div>
+                    <div class="col-3"><button class="btn btn-outline-dark w-100 btn-calc" onclick="pressDecimal()">.</button></div>
+                    <div class="col-3"><button class="btn btn-success w-100 btn-calc" onclick="pressEquals()">=</button></div>
                 </div>
             </div>
         </div>
     </div>
+
     <script>
-        async function calc(operation) {
-            const a = document.getElementById('a').value;
-            const b = document.getElementById('b').value;
-            if (a === '' || b === '') {
-                document.getElementById('result').innerText = 'Please enter both numbers.';
-                return;
+        // Calculator state
+        let currentExpression = '';
+        let currentOperand = '';
+        let previousOperand = null;
+        let pendingOperator = null;
+        let shouldResetDisplay = false;
+
+        function updateDisplay() {
+            // Show expression (debug) and result
+            const expr = currentExpression || '&nbsp;';
+            document.getElementById('displayExpression').innerHTML = expr;
+            const result = previousOperand !== null ? previousOperand : (currentOperand || '0');
+            document.getElementById('displayResult').innerText = result;
+        }
+
+        function pressDigit(digit) {
+            if (shouldResetDisplay) {
+                currentExpression = '';
+                currentOperand = '';
+                previousOperand = null;
+                pendingOperator = null;
+                shouldResetDisplay = false;
+            }
+            if (currentOperand === '0' && digit !== '.') {
+                currentOperand = digit;
+            } else {
+                currentOperand += digit;
+            }
+            currentExpression += digit;
+            updateDisplay();
+        }
+
+        function pressDecimal() {
+            if (shouldResetDisplay) {
+                currentExpression = '';
+                currentOperand = '0.';
+                previousOperand = null;
+                pendingOperator = null;
+                shouldResetDisplay = false;
+            } else if (!currentOperand.includes('.')) {
+                if (currentOperand === '') currentOperand = '0';
+                currentOperand += '.';
+                currentExpression += '.';
+            }
+            updateDisplay();
+        }
+
+        function pressOperator(op) {
+            if (shouldResetDisplay) {
+                // After equals, start fresh with previous result as first operand
+                previousOperand = parseFloat(currentOperand);
+                currentOperand = '';
+                shouldResetDisplay = false;
+            }
+            if (pendingOperator !== null) {
+                // Evaluate previous operation before new operator
+                if (currentOperand === '') {
+                    // Just change operator
+                    pendingOperator = op;
+                    // Update expression: replace last operator
+                    currentExpression = currentExpression.slice(0, -1) + getOperatorSymbol(op);
+                    updateDisplay();
+                    return;
+                }
+                evaluatePending();
+            } else {
+                // First operator: store current operand as previous
+                previousOperand = parseFloat(currentOperand);
+                currentOperand = '';
+            }
+            pendingOperator = op;
+            currentExpression += getOperatorSymbol(op);
+            updateDisplay();
+        }
+
+        function getOperatorSymbol(op) {
+            switch (op) {
+                case '+': return '+';
+                case '-': return '−';
+                case '*': return '×';
+                case '/': return '÷';
+                default: return op;
+            }
+        }
+
+        function pressEquals() {
+            if (pendingOperator === null) return;
+            if (currentOperand === '') currentOperand = '0';
+            evaluatePending();
+            pendingOperator = null;
+            shouldResetDisplay = true;
+            // Update expression to show full evaluation
+            currentExpression = previousOperand.toString();
+            updateDisplay();
+        }
+
+        async function evaluatePending() {
+            const a = previousOperand;
+            const b = parseFloat(currentOperand);
+            let operation = '';
+            switch (pendingOperator) {
+                case '+': operation = 'add'; break;
+                case '-': operation = 'subtract'; break;
+                case '*': operation = 'multiply'; break;
+                case '/': operation = 'divide'; break;
+                default: return;
             }
             try {
-                // Use relative path to API
                 const res = await fetch(`/${operation}?a=${a}&b=${b}`);
                 if (!res.ok) {
                     const err = await res.json();
                     throw new Error(err.detail || 'Unknown error');
                 }
                 const data = await res.json();
-                document.getElementById('result').innerText = `Result: ${data.result}`;
+                previousOperand = data.result;
+                currentOperand = previousOperand.toString();
+                currentExpression = previousOperand.toString();
             } catch (err) {
-                document.getElementById('result').innerText = `Error: ${err.message}`;
+                document.getElementById('displayResult').innerText = 'Error: ' + err.message;
+                previousOperand = null;
+                currentOperand = '';
+                pendingOperator = null;
+                currentExpression = '';
             }
+            updateDisplay();
         }
+
+        function pressClear() {
+            currentExpression = '';
+            currentOperand = '';
+            previousOperand = null;
+            pendingOperator = null;
+            shouldResetDisplay = false;
+            updateDisplay();
+        }
+
+        function pressSign() {
+            // Toggle sign of current operand
+            if (currentOperand === '') return;
+            if (currentOperand.startsWith('-')) {
+                currentOperand = currentOperand.slice(1);
+                currentExpression = currentExpression.slice(1);
+            } else {
+                currentOperand = '-' + currentOperand;
+                currentExpression = '-' + currentExpression;
+            }
+            updateDisplay();
+        }
+
+        function pressPercent() {
+            // Divide by 100 using divide endpoint with b=100
+            if (currentOperand === '') return;
+            const a = parseFloat(currentOperand);
+            const b = 100;
+            fetch('/divide?a=' + a + '&b=' + b)
+                .then(r => r.json())
+                .then(data => {
+                    currentOperand = data.result.toString();
+                    currentExpression = currentOperand;
+                    updateDisplay();
+                })
+                .catch(err => {
+                    document.getElementById('displayResult').innerText = 'Error: ' + err.message;
+                });
+        }
+
+        // Initialize display
+        updateDisplay();
     </script>
 </body>
 </html>
